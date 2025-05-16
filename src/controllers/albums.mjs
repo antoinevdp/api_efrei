@@ -33,7 +33,7 @@ const Albums = class Albums {
   showById() {
     this.app.get('/album/:id', (req, res) => {
       try {
-        this.AlbumModel.findById(req.params.id).then((album) => {
+        this.AlbumModel.findById(req.params.id).populate('photos').then((album) => {
           res.status(200).json(album || {});
         }).catch(() => {
           res.status(500).json({
@@ -41,6 +41,37 @@ const Albums = class Albums {
             message: 'Internal Server error'
           });
         });
+      } catch (err) {
+        console.error(`[ERROR] album/:id -> ${err}`);
+
+        res.status(400).json({
+          code: 400,
+          message: 'Bad request'
+        });
+      }
+    });
+  }
+
+  getAllAlbums() {
+    this.app.get('/albums/', (req, res) => {
+      try {
+        const { title } = req.query;
+        if (!title) {
+          res.status(400).json({ error: 'Title is required' });
+        } else {
+          this.AlbumModel.find({ title: { $regex: title } }).populate('photos').then((album) => {
+            if (album.length === 0) {
+              res.status(404).json({ error: 'No items found matching the title' });
+            } else {
+              res.status(200).json(album || {});
+            }
+          }).catch(() => {
+            res.status(500).json({
+              code: 500,
+              message: 'Internal Server error'
+            });
+          });
+        }
       } catch (err) {
         console.error(`[ERROR] album/:id -> ${err}`);
 
@@ -77,6 +108,7 @@ const Albums = class Albums {
     this.create();
     this.showById();
     this.deleteById();
+    this.getAllAlbums();
   }
 };
 

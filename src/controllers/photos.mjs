@@ -33,7 +33,7 @@ const Photos = class Photos {
   }
 
   getAllPhotos() {
-    this.app.get('/album/:idalbum/photo/', (req, res) => {
+    this.app.get('/album/:idalbum/photos/', (req, res) => {
       try {
         this.PhotoModel.find({ album: req.params.idalbum }).then((photos) => {
           res.status(200).json(photos || {});
@@ -83,7 +83,8 @@ const Photos = class Photos {
         const photoModel = new this.PhotoModel(req.body);
         photoModel.save().then((photo) => {
           this.AlbumModel
-            .findByIdAndUpdate(req.params.id, { $push: { photos: photo._id } }, { new: true }).then(
+            .findByIdAndUpdate(req.params.idalbum, { $push: { photos: photo._id } }, { new: true })
+            .then(
               (updatedPhoto) => {
                 res.status(200).json(updatedPhoto || {});
               }

@@ -1,8 +1,13 @@
+// Load environment variables from .env file
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 export default {
   development: {
     type: 'development',
     port: 3000,
-    mongodb: 'mongodb+srv://avandeplanque:H4lgSd46R6Yy8Yzz@efrei.o39gb.mongodb.net/api'
+    mongodb: process.env.MONGO_KEY
   },
   production: {
     type: 'production',
