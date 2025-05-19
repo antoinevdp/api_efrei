@@ -11,23 +11,31 @@ const Photos = class Photos {
   }
 
   deleteById() {
-    this.app.delete('/photo/:id', (req, res) => {
+    // eslint-disable-next-line consistent-return
+    this.app.delete('/album/:idalbum/photo/:idphoto', async (req, res) => {
       try {
-        this.PhotoModel.findByIdAndDelete(req.params.id).then((photo) => {
-          res.status(200).json(photo || {});
-        }).catch(() => {
-          res.status(500).json({
-            code: 500,
-            message: 'Internal Server error'
-          });
-        });
-      } catch (err) {
-        console.error(`[ERROR] photo/:id -> ${err}`);
+        const { idalbum, idphoto } = req.params;
 
-        res.status(400).json({
-          code: 400,
-          message: 'Bad request'
-        });
+        // Vérifier que la photo existe et appartient à l'album
+        const photo = await this.PhotoModel.findOne({ _id: idphoto, album: idalbum });
+        if (!photo) {
+          return res.status(404).json({ error: 'Photo not found in album' });
+        }
+
+        // Supprimer la photo
+        await this.PhotoModel.findByIdAndDelete(idphoto);
+
+        // Retirer l'ID de la photo du tableau `photos` de l'album
+        await this.AlbumModel.findByIdAndUpdate(
+          idalbum,
+          { $pull: { photos: idphoto } },
+          { new: true }
+        );
+
+        res.status(200).json({ message: 'Photo deleted successfully' });
+      } catch (err) {
+        console.error(`[ERROR] DELETE /album/${req.params.idalbum}/photo/${req.params.idphoto} -> ${err}`);
+        res.status(500).json({ error: 'Internal Server Error' });
       }
     });
   }
@@ -55,59 +63,101 @@ const Photos = class Photos {
   }
 
   getPhotoByID() {
-    this.app.get('/album/:idalbum/photo/:idphoto', (req, res) => {
+    // eslint-disable-next-line consistent-return
+    this.app.get('/album/:idalbum/photo/:idphoto', async (req, res) => {
       try {
-        this.PhotoModel.find({ album: req.params.idalbum, _id: req.params.idphoto }).populate('album')
-          .then((photos) => {
-            res.status(200).json(photos || {});
-          }).catch(() => {
-            res.status(500).json({
-              code: 500,
-              message: 'Internal Server error'
-            });
-          });
-      } catch (err) {
-        console.error(`[ERROR] photo/:id -> ${err}`);
+        const { idalbum, idphoto } = req.params;
 
-        res.status(400).json({
-          code: 400,
-          message: 'Bad request'
-        });
+        // Récupérer une seule photo qui appartient à cet album
+        const photo = await this.PhotoModel.findOne({ _id: idphoto, album: idalbum }).populate('album');
+
+        if (!photo) {
+          return res.status(404).json({ error: 'Photo not found in album' });
+        }
+
+        res.status(200).json(photo);
+      } catch (err) {
+        console.error(`[ERROR] GET /album/${req.params.idalbum}/photo/${req.params.idphoto} -> ${err}`);
+        res.status(500).json({ error: 'Internal Server Error' });
       }
     });
   }
 
-  create() {
-    this.app.post('/album/:idalbum/photo', (req, res) => {
+  createPhoto() {
+    // eslint-disable-next-line consistent-return
+    this.app.post('/album/:idalbum/photo', async (req, res) => {
       try {
-        const photoModel = new this.PhotoModel(req.body);
-        photoModel.save().then((photo) => {
-          this.AlbumModel
-            .findByIdAndUpdate(req.params.idalbum, { $push: { photos: photo._id } }, { new: true })
-            .then(
-              (updatedPhoto) => {
-                res.status(200).json(updatedPhoto || {});
-              }
-            );
-        }).catch(() => {
-          res.status(200).json({});
-        });
-      } catch (err) {
-        console.error(`[ERROR] photo/create -> ${err}`);
+        const albumId = req.params.idalbum;
 
-        res.status(400).json({
-          code: 400,
-          message: 'Bad request'
-        });
+        // Vérifier que l'album existe
+        const albumExists = await this.AlbumModel.findById(albumId);
+        if (!albumExists) {
+          return res.status(404).json({ error: 'Album not found' });
+        }
+
+        // Créer la photo avec l'album lié
+        const photoData = {
+          ...req.body,
+          album: albumId
+        };
+
+        const photoModel = new this.PhotoModel(photoData);
+        const savedPhoto = await photoModel.save();
+
+        // Ajouter la photo à l'album
+        await this.AlbumModel.findByIdAndUpdate(
+          albumId,
+          { $push: { photos: savedPhoto._id } },
+          { new: true }
+        );
+
+        res.status(201).json(savedPhoto);
+      } catch (err) {
+        console.error(`[ERROR] POST /album/:idalbum/photo -> ${err}`);
+        res.status(500).json({ error: 'Internal Server error' });
+      }
+    });
+  }
+
+  updatePhoto() {
+    // eslint-disable-next-line consistent-return
+    this.app.put('/album/:idalbum/photo/:idphoto', async (req, res) => {
+      try {
+        const { idalbum, idphoto } = req.params;
+
+        // Vérifie que l'album existe
+        const album = await this.AlbumModel.findById(idalbum);
+        if (!album) {
+          return res.status(404).json({ error: 'Album not found' });
+        }
+
+        // Vérifie que la photo appartient bien à l'album
+        const photo = await this.PhotoModel.findOne({ _id: idphoto, album: idalbum });
+        if (!photo) {
+          return res.status(404).json({ error: 'Photo not found in album' });
+        }
+
+        // Met à jour la photo
+        const updatedPhoto = await this.PhotoModel.findByIdAndUpdate(
+          idphoto,
+          req.body,
+          { new: true, runValidators: true }
+        );
+
+        res.status(200).json(updatedPhoto);
+      } catch (err) {
+        console.error(`[ERROR] PUT /album/${req.params.idalbum}/photo/${req.params.idphoto} -> ${err}`);
+        res.status(500).json({ error: 'Internal Server error' });
       }
     });
   }
 
   run() {
-    this.create();
+    this.createPhoto();
     this.getAllPhotos();
     this.getPhotoByID();
     this.deleteById();
+    this.updatePhoto();
   }
 };
 

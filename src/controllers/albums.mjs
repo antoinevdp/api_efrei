@@ -89,13 +89,43 @@ const Albums = class Albums {
         const albumModel = new this.AlbumModel(req.body);
 
         albumModel.save().then((album) => {
-          res.status(200).json(album || {});
+          res.status(201).json(album || {});
         }).catch(() => {
-          res.status(200).json({});
+          res.status(201).json({});
         });
       } catch (err) {
         console.error(`[ERROR] album/create -> ${err}`);
 
+        res.status(400).json({
+          code: 400,
+          message: 'Bad request'
+        });
+      }
+    });
+  }
+
+  updateById() {
+    this.app.put('/album/:id', (req, res) => {
+      try {
+        this.AlbumModel.findByIdAndUpdate(
+          req.params.id,
+          req.body,
+          { new: true, runValidators: true }
+        ).then((updatedAlbum) => {
+          if (!updatedAlbum) {
+            res.status(404).json({ error: 'Album not found' });
+          } else {
+            res.status(200).json(updatedAlbum);
+          }
+        }).catch((err) => {
+          console.error(`[ERROR] album/:id [update] -> ${err}`);
+          res.status(500).json({
+            code: 500,
+            message: 'Internal Server error'
+          });
+        });
+      } catch (err) {
+        console.error(`[ERROR] album/:id [update] -> ${err}`);
         res.status(400).json({
           code: 400,
           message: 'Bad request'
@@ -109,6 +139,7 @@ const Albums = class Albums {
     this.showById();
     this.deleteById();
     this.getAllAlbums();
+    this.updateById();
   }
 };
 

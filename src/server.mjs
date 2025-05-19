@@ -69,7 +69,7 @@ const Server = class Server {
   }
 
   routes() {
-    new routes.Users(this.app, this.connect);
+    // new routes.Users(this.app, this.connect);
     new routes.Albums(this.app, this.connect);
     new routes.Photos(this.app, this.connect);
 
