@@ -1,82 +1,170 @@
-# API Users
+# Albums & Photos API
 
-## Overview
-The API allows users to retrieve all of the users of the application in micro service through a REST architecture. This API will be mainly used for registed Accounts.
+## 📋 Overview
 
-It will also create own users to recover data to the platform but is in no way related to the users collected via the crawling of profiles on Social Networks.
+This RESTful API manages a collection of **albums** and their associated **photos**. It is designed as a microservice using Node.js, Express, and MongoDB.
 
-### [POST] Create user
-Allows the creation of a single user.
+---
 
-|                            |                  |
-|----------------------------|------------------|
-| Requires authentication ?  | No               |
-| Who can use it ?           | Owner and users  |
-| Response formats           | application/json |
+## Endpoints
 
-* HTTP request : POST → user/create
+### \[POST] Create an Album
 
-#### Parameters :
-```javascript
+Allows the creation of a new album.
+
+|                          |                    |
+| ------------------------ | ------------------ |
+| Requires authentication? | No                 |
+| Who can use it?          | Anyone             |
+| Response format          | `application/json` |
+
+**HTTP request** : `POST /album/`
+
+#### Body :
+
+```json
 {
-  'firstname': String, // Optional
-  'lastname': Number, // Optional
-  'age': Number, // Optional
-  'city': String // Optional
+  "title": "My Album",
+  "description": "Summer vacation"
 }
 ```
 
 #### Response :
-```javascript
-  {
-    id: Object_ID,
-    firstname: String,
-    lastname: String,
-    age: Number,
-    city: String
-  }
+
+```json
+{
+  "id": "664adf...cba",
+  "title": "My Album",
+  "description": "Summer vacation",
+  "photos": [],
+  "created_at": "2025-05-19T12:34:56.789Z"
+}
 ```
 
-### [POST] Show user
-Show an user by id.
+---
 
-|                            |                  |
-|----------------------------|------------------|
-| Requires authentication ?  | No               |
-| Who can use it ?           | Owner and users  |
-| Response formats           | application/json |
+### \[GET] Show an Album by ID
 
-* HTTP request : GET → user/show/:id
+Returns a specific album with its photos.
 
-#### Parameters :
-```javascript
+* **HTTP request** : `GET /album/:id`
+
+#### Response :
+
+```json
 {
-  id: String // Required
+  "id": "664adf...cba",
+  "title": "My Album",
+  "description": "Summer vacation",
+  "photos": [
+    {
+      "id": "665a...",
+      "title": "Beach",
+      "url": "https://...",
+      "description": "Sunset",
+      "created_at": "..."
+    }
+  ]
+}
+```
+
+---
+
+### \[DELETE] Delete an Album
+
+* **HTTP request** : `DELETE /album/:id`
+
+---
+
+### \[GET] Search Albums by Title
+
+* **HTTP request** : `GET /albums/?title=vacation`
+
+---
+
+### \[POST] Add a Photo to an Album
+
+* **HTTP request** : `POST /album/:idalbum/photo`
+
+#### Body :
+
+```json
+{
+  "title": "Beach",
+  "url": "https://...",
+  "description": "Sunset"
 }
 ```
 
 #### Response :
-```javascript
-  {
-    id: Object_ID,
-    firstname: String,
-    lastname: String,
-    age: Number,
-    city: String
-  }
+
+```json
+{
+  "id": "665a...",
+  "title": "Beach",
+  "url": "https://...",
+  "description": "Sunset",
+  "album": "664adf...cba"
+}
 ```
 
-### Requirements
-* node 18
-* npm or yarn or pnpm
-* git
-* mongodb (please configure config.js for link mongodb)
+---
 
-### Install
-```npm i```
+###  \[GET] Get All Photos in an Album
 
-### Production mode
-```npm run prod```
+* **HTTP request** : `GET /album/:idalbum/photos/`
 
-### Dev mode
-```npm run dev```
+---
+
+###  \[GET] Get a Photo by ID
+
+* **HTTP request** : `GET /album/:idalbum/photo/:idphoto`
+
+---
+
+### ️ \[PUT] Update a Photo
+
+* **HTTP request** : `PUT /album/:idalbum/photo/:idphoto`
+
+#### Body (example) :
+
+```json
+{
+  "title": "Updated title"
+}
+```
+
+---
+
+### ️ \[DELETE] Delete a Photo
+
+* **HTTP request** : `DELETE /album/:idalbum/photo/:idphoto`
+
+---
+
+## ️ Requirements
+
+* Node.js v18
+* npm / yarn / pnpm
+* Git
+* MongoDB (configure `config.js` with your MongoDB connection string)
+
+---
+
+## Install
+
+```bash
+npm install
+```
+
+## Production mode
+
+```bash
+npm run prod
+```
+
+## Development mode
+
+```bash
+npm run dev
+```
