@@ -1,9 +1,13 @@
+import validator from 'better-validator';
 import AlbumModel from '../models/album.mjs';
 
 const Albums = class Albums {
-  constructor(app, connect) {
+  constructor(app, connect, authToken) {
     this.app = app;
     this.AlbumModel = connect.model('Album', AlbumModel);
+
+    this.app.use('/album', authToken);
+    this.app.use('/albums', authToken);
 
     this.run();
   }
@@ -84,8 +88,22 @@ const Albums = class Albums {
   }
 
   create() {
+    // eslint-disable-next-line consistent-return
     this.app.post('/album/', (req, res) => {
       try {
+        const v = validator(req.body);
+        v.property('title').required().string().minLength(3)
+          .maxLength(100);
+        v.property('description').optional().string().maxLength(500);
+        v.property('photos').optional().array(); // tu peux aussi valider chaque ObjectId si besoin
+
+        if (!v.run()) {
+          return res.status(400).json({
+            code: 400,
+            message: 'Validation failed',
+            errors: v.errors
+          });
+        }
         const albumModel = new this.AlbumModel(req.body);
 
         albumModel.save().then((album) => {
@@ -105,8 +123,21 @@ const Albums = class Albums {
   }
 
   updateById() {
+    // eslint-disable-next-line consistent-return
     this.app.put('/album/:id', (req, res) => {
       try {
+        const v = validator(req.body);
+        v.property('title').optional().string().minLength(3)
+          .maxLength(100);
+        v.property('description').optional().string().maxLength(500);
+
+        if (!v.run()) {
+          return res.status(400).json({
+            code: 400,
+            message: 'Validation failed',
+            errors: v.errors
+          });
+        }
         this.AlbumModel.findByIdAndUpdate(
           req.params.id,
           req.body,
