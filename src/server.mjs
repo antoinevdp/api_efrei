@@ -5,15 +5,26 @@ import bodyParser from 'body-parser';
 import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import https from 'https';
+import fs from 'fs';
 
 // Core
+import jwt from 'jsonwebtoken';
 import config from './config.mjs';
 import routes from './controllers/routes.mjs';
+
+const SECRET_KEY = 'efrei';
 
 const Server = class Server {
   constructor() {
     this.app = express();
     this.config = config[process.argv[2]] || config.development;
+
+    this.httpsOptions = {
+      key: fs.readFileSync('./ssl/key.pem'),
+      cert: fs.readFileSync('./ssl/cert.pem')
+    };
   }
 
   async dbConnect() {
@@ -63,14 +74,35 @@ const Server = class Server {
 
   middleware() {
     this.app.use(compression());
-    this.app.use(cors());
+    const allowedOrigins = ['http://localhost:3000'];
+    this.app.use(cors({
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      credentials: true
+    }));
     this.app.use(bodyParser.urlencoded({ extended: true }));
     this.app.use(bodyParser.json());
+
+    const limiter = rateLimit({
+      windowMs: 60 * 60 * 1000, // 1 heure
+      max: 100,
+      message: {
+        code: 429,
+        message: 'Too many requests, try again later.'
+      }
+    });
+    this.app.use(limiter);
   }
 
   routes() {
     // new routes.Users(this.app, this.connect);
-    new routes.Albums(this.app, this.connect);
+    new routes.Auth(this.app);
+    new routes.Albums(this.app, this.connect, this.authToken);
     new routes.Photos(this.app, this.connect);
 
     this.app.use((req, res) => {
@@ -86,13 +118,38 @@ const Server = class Server {
     this.app.disable('x-powered-by');
   }
 
+  authToken = (req, res, next) => {
+    const token = req.headers.authorization;
+
+    if (!token) {
+      return res.status(401).json({
+        code: 401,
+        message: 'Access denied. No token provided.'
+      });
+    }
+
+    try {
+      const decoded = jwt.verify(token, SECRET_KEY);
+      req.auth = decoded; // Stocke les infos du token pour les routes
+      next();
+    } catch (err) {
+      return res.status(401).json({
+        code: 401,
+        message: 'Invalid or expired token.'
+      });
+    }
+  };
+
   async run() {
     try {
       await this.dbConnect();
       this.security();
       this.middleware();
       this.routes();
-      this.app.listen(this.config.port);
+      https.createServer(this.httpsOptions, this.app)
+        .listen(this.config.port, () => {
+          console.log(`[HTTPS] Server running on https://localhost:${this.config.port}`);
+        });
     } catch (err) {
       console.error(`[ERROR] Server -> ${err}`);
     }

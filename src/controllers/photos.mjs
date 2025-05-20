@@ -1,3 +1,4 @@
+import Validator from 'better-validator';
 import PhotoModel from '../models/photo.mjs';
 import AlbumModel from '../models/album.mjs';
 
@@ -95,6 +96,20 @@ const Photos = class Photos {
           return res.status(404).json({ error: 'Album not found' });
         }
 
+        const validator = new Validator();
+        validator(req.body.title).required().isString().lengthInRange(3, 100);
+        validator(req.body.description).isString().lengthInRange(0, 500);
+        validator(req.body.url).required().isString().lengthInRange(5, 300);
+        const errors = validator.run();
+
+        if (errors.length > 0) {
+          return res.status(400).json({
+            code: 400,
+            message: 'Validation failed',
+            errors: validator.errors
+          });
+        }
+
         // Créer la photo avec l'album lié
         const photoData = {
           ...req.body,
@@ -135,6 +150,20 @@ const Photos = class Photos {
         const photo = await this.PhotoModel.findOne({ _id: idphoto, album: idalbum });
         if (!photo) {
           return res.status(404).json({ error: 'Photo not found in album' });
+        }
+
+        const validator = new Validator();
+        validator(req.body.title).isString().lengthInRange(3, 100);
+        validator(req.body.description).isString().lengthInRange(0, 500);
+        validator(req.body.url).isString().lengthInRange(5, 300);
+        const errors = validator.run();
+
+        if (errors.length > 0) {
+          return res.status(400).json({
+            code: 400,
+            message: 'Validation failed',
+            errors: validator.errors
+          });
         }
 
         // Met à jour la photo
