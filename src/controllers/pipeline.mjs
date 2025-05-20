@@ -48,8 +48,13 @@ async function fetchRandommerName() {
   return res.data[0];
 }
 
+async function fetchRandomPet() {
+  const res = await axios.get('https://random-animal-api.vercel.app/api/random-animal')
+  return res.data.city;
+}
+
 async function fetchQuote() {
-  const res = await axios.get('https://api.quotable.io/random');
+  const res = await axios.get('http://api.quotable.io/random');
   return {
     content: res.data.content,
     author: res.data.author
@@ -71,6 +76,8 @@ async function createFullProfile() {
     const iban = await fetchRandommerIban();
     const creditCard = await fetchCreditCard();
     const name = await fetchRandommerName();
+    const pet = await fetchRandomPet();
+    const quote = await fetchQuote();
     const joke = await fetchJoke();
 
     const profile = {
@@ -78,13 +85,15 @@ async function createFullProfile() {
       phone_number: phone,
       iban,
       credit_card: creditCard,
-      name,q
+      name,
+      pet,
+      quote,
       joke
     };
 
     console.log(JSON.stringify(profile, null, 2));
   } catch (err) {
-    console.error('❌ Erreur lors de la génération du profil :', err.message);
+    console.error(err.message);
   }
 }
 
