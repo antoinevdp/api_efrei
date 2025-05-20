@@ -1,0 +1,6 @@
+{
+  "apps": [{
+    "name": "app1",
+    "script": "./index.mjs"
+  }]
+}
