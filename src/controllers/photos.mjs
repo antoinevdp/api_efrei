@@ -1,4 +1,4 @@
-import validator from 'better-validator';
+import Validator from 'better-validator';
 import PhotoModel from '../models/photo.mjs';
 import AlbumModel from '../models/album.mjs';
 
@@ -96,18 +96,17 @@ const Photos = class Photos {
           return res.status(404).json({ error: 'Album not found' });
         }
 
-        const v = validator(req.body);
-        v.property('title').required().string().minLength(3)
-          .maxLength(100);
-        v.property('description').optional().string().maxLength(500);
-        v.property('url').required().string().minLength(5)
-          .maxLength(300); // si tu as un champ URL
+        const validator = new Validator();
+        validator(req.body.title).required().isString().lengthInRange(3, 100);
+        validator(req.body.description).isString().lengthInRange(0, 500);
+        validator(req.body.url).required().isString().lengthInRange(5, 300);
+        const errors = validator.run();
 
-        if (!v.run()) {
+        if (errors.length > 0) {
           return res.status(400).json({
             code: 400,
             message: 'Validation failed',
-            errors: v.errors
+            errors: validator.errors
           });
         }
 
@@ -153,18 +152,17 @@ const Photos = class Photos {
           return res.status(404).json({ error: 'Photo not found in album' });
         }
 
-        const v = validator(req.body);
-        v.property('title').optional().string().minLength(3)
-          .maxLength(100);
-        v.property('description').optional().string().maxLength(500);
-        v.property('url').optional().string().minLength(5)
-          .maxLength(300); // si modifiable
+        const validator = new Validator();
+        validator(req.body.title).isString().lengthInRange(3, 100);
+        validator(req.body.description).isString().lengthInRange(0, 500);
+        validator(req.body.url).isString().lengthInRange(5, 300);
+        const errors = validator.run();
 
-        if (!v.run()) {
+        if (errors.length > 0) {
           return res.status(400).json({
             code: 400,
             message: 'Validation failed',
-            errors: v.errors
+            errors: validator.errors
           });
         }
 

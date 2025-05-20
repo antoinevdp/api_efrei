@@ -1,4 +1,4 @@
-import validator from 'better-validator';
+import Validator from 'better-validator';
 import AlbumModel from '../models/album.mjs';
 
 const Albums = class Albums {
@@ -91,17 +91,16 @@ const Albums = class Albums {
     // eslint-disable-next-line consistent-return
     this.app.post('/album/', (req, res) => {
       try {
-        const v = validator(req.body);
-        v.property('title').required().string().minLength(3)
-          .maxLength(100);
-        v.property('description').optional().string().maxLength(500);
-        v.property('photos').optional().array(); // tu peux aussi valider chaque ObjectId si besoin
+        const validator = new Validator();
+        validator(req.body.title).required().isString().lengthInRange(3, 100);
+        validator(req.body.description).isString().lengthInRange(0, 500);
+        const errors = validator.run();
 
-        if (!v.run()) {
+        if (errors.length > 0) {
           return res.status(400).json({
             code: 400,
             message: 'Validation failed',
-            errors: v.errors
+            errors: validator.errors
           });
         }
         const albumModel = new this.AlbumModel(req.body);
@@ -126,16 +125,16 @@ const Albums = class Albums {
     // eslint-disable-next-line consistent-return
     this.app.put('/album/:id', (req, res) => {
       try {
-        const v = validator(req.body);
-        v.property('title').optional().string().minLength(3)
-          .maxLength(100);
-        v.property('description').optional().string().maxLength(500);
+        const validator = new Validator();
+        validator(req.body.title).isString().lengthInRange(3, 100);
+        validator(req.body.description).isString().lengthInRange(0, 500);
+        const errors = validator.run();
 
-        if (!v.run()) {
+        if (errors.length > 0) {
           return res.status(400).json({
             code: 400,
             message: 'Validation failed',
-            errors: v.errors
+            errors: validator.errors
           });
         }
         this.AlbumModel.findByIdAndUpdate(
